@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { executionsApi } from '../../api/maestro'
 import type { ExecutionFilters, TaskExecution } from '../../types/maestro'
 
@@ -14,6 +14,14 @@ export default function ExecutionsTab({ clusterId }: ExecutionsTabProps) {
     offset: 0,
   })
 
+  useEffect(() => {
+    setFilters({
+      cluster_id: clusterId,
+      limit: 50,
+      offset: 0,
+    })
+  }, [clusterId])
+
   const { data, isLoading } = useQuery({
     queryKey: ['executions', filters],
     queryFn: () => executionsApi.list(filters),
@@ -24,6 +32,7 @@ export default function ExecutionsTab({ clusterId }: ExecutionsTabProps) {
     setFilters((prev) => ({
       ...prev,
       [key]: value || undefined,
+      cluster_id: clusterId,
       offset: 0,
     }))
   }
