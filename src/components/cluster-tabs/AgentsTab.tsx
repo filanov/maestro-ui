@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { agentsApi } from '../../api/maestro'
 import { formatDistanceToNow } from 'date-fns'
+import type { Agent } from '../../types/maestro'
 
 interface AgentsTabProps {
   clusterId: string
@@ -14,11 +15,26 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
   const [page, setPage] = useState(0)
   const limit = 50
 
+  const queryClient = useQueryClient()
+
   const { data: agentsData, isLoading } = useQuery({
     queryKey: ['agents', clusterId],
     queryFn: () => agentsApi.listByCluster(clusterId),
     refetchInterval: 30000,
   })
+
+  const deleteAgent = useMutation({
+    mutationFn: (id: string) => agentsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents', clusterId] })
+    },
+  })
+
+  const handleDelete = (agent: Agent) => {
+    if (window.confirm(`Are you sure you want to remove agent '${agent.hostname}'? This action cannot be undone.`)) {
+      deleteAgent.mutate(agent.id)
+    }
+  }
 
   const filteredAgents = useMemo(() => {
     let agents = agentsData?.data || []
@@ -108,29 +124,11 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
           ) : (
             <div className="space-y-3">
               {paginatedAgents.map((agent) => (
-                <Link
+                <AgentCard
                   key={agent.id}
-                  to={`/agents/${agent.id}`}
-                  className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">{agent.hostname}</div>
-                      <div className="text-sm text-gray-500">
-                        Last heartbeat: {formatDistanceToNow(new Date(agent.last_heartbeat), { addSuffix: true })}
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        agent.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {agent.status}
-                    </span>
-                  </div>
-                </Link>
+                  agent={agent}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           )}
@@ -160,6 +158,87 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+interface AgentCardProps {
+  agent: Agent
+  onDelete: (agent: Agent) => void
+}
+
+function AgentCard({ agent, onDelete }: AgentCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
+
+  return (
+    <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="flex items-center justify-between">
+        <Link to={`/agents/${agent.id}`} className="flex-1 min-w-0">
+          <div className="font-medium text-gray-900 hover:text-blue-600">{agent.hostname}</div>
+          <div className="text-sm text-gray-500">
+            Last heartbeat: {formatDistanceToNow(new Date(agent.last_heartbeat), { addSuffix: true })}
+          </div>
+        </Link>
+
+        <div className="flex items-center gap-3 ml-4">
+          <span
+            className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${
+              agent.status === 'active'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {agent.status}
+          </span>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                <div className="py-1">
+                  <Link
+                    to={`/agents/${agent.id}`}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    View Details
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onDelete(agent)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Remove Agent
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
