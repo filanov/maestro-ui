@@ -49,10 +49,10 @@ export const agentsApi = {
 
 export const tasksApi = {
   listByCluster: (clusterId: string, limit = 50, offset = 0) =>
-    apiGet<PaginatedResponse<Task>>(`/clusters/${clusterId}/tasks`, { limit, offset }),
+    apiGet<PaginatedResponse<Task>>(`/tasks`, { cluster_id: clusterId, limit, offset }),
 
   create: (clusterId: string, data: CreateTaskRequest) =>
-    apiPost<Task>(`/clusters/${clusterId}/tasks`, data),
+    apiPost<Task>(`/tasks`, { ...data, cluster_id: clusterId }),
 
   get: (id: string) =>
     apiGet<Task>(`/tasks/${id}`),
@@ -64,7 +64,7 @@ export const tasksApi = {
     apiDelete<void>(`/tasks/${id}`),
 
   reorder: (clusterId: string, data: ReorderTasksRequest) =>
-    apiPut<void>(`/clusters/${clusterId}/tasks/reorder`, data),
+    apiPut<void>(`/tasks/reorder`, { ...data, cluster_id: clusterId }),
 
   getExecutions: (taskId: string, limit = 50, offset = 0) =>
     apiGet<PaginatedResponse<TaskExecution>>(`/tasks/${taskId}/executions`, { limit, offset }),

@@ -10,10 +10,10 @@ export interface Agent {
   id: string
   cluster_id: string
   hostname: string
-  status: 'connected' | 'disconnected'
+  status: 'active' | 'inactive'
   last_heartbeat: string
-  created_at: string
-  updated_at: string
+  registered_at: string
+  last_reset_at: string
 }
 
 export interface Task {

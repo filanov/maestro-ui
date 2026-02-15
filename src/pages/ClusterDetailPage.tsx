@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { clustersApi, agentsApi, tasksApi } from '../api/maestro'
 import { formatDistanceToNow } from 'date-fns'
+import AgentStatusChart from '../components/AgentStatusChart'
 
 export default function ClusterDetailPage() {
   const { clusterId } = useParams<{ clusterId: string }>()
@@ -49,6 +50,13 @@ export default function ClusterDetailPage() {
         </div>
       </div>
 
+      <div className="bg-white shadow sm:rounded-lg mb-6">
+        <div className="px-4 py-5 sm:p-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Agent Status</h2>
+          <AgentStatusChart clusterId={clusterId} clusterName={cluster?.name || 'Cluster'} />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <div className="bg-white shadow sm:rounded-lg">
@@ -77,7 +85,7 @@ export default function ClusterDetailPage() {
                         </div>
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            agent.status === 'connected'
+                            agent.status === 'active'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}
