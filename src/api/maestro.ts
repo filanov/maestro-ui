@@ -64,7 +64,7 @@ export const tasksApi = {
     apiDelete<void>(`/tasks/${id}`),
 
   reorder: (clusterId: string, data: ReorderTasksRequest) =>
-    apiPut<void>(`/tasks/reorder`, { ...data, cluster_id: clusterId }),
+    apiPost<void>(`/tasks/reorder`, { ...data, cluster_id: clusterId }),
 
   getExecutions: (taskId: string, limit = 50, offset = 0) =>
     apiGet<PaginatedResponse<TaskExecution>>(`/tasks/${taskId}/executions`, { limit, offset }),
