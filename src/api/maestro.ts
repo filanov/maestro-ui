@@ -51,8 +51,8 @@ export const tasksApi = {
   listByCluster: (clusterId: string, limit = 50, offset = 0) =>
     apiGet<PaginatedResponse<Task>>(`/tasks`, { cluster_id: clusterId, limit, offset }),
 
-  create: (clusterId: string, data: CreateTaskRequest) =>
-    apiPost<Task>(`/tasks`, { ...data, cluster_id: clusterId }),
+  create: (data: CreateTaskRequest) =>
+    apiPost<Task>(`/tasks`, data),
 
   get: (id: string) =>
     apiGet<Task>(`/tasks/${id}`),
@@ -63,8 +63,11 @@ export const tasksApi = {
   delete: (id: string) =>
     apiDelete<void>(`/tasks/${id}`),
 
-  reorder: (clusterId: string, data: ReorderTasksRequest) =>
-    apiPost<void>(`/tasks/reorder`, { ...data, cluster_id: clusterId }),
+  reorder: (data: ReorderTasksRequest) =>
+    apiPost<void>(`/tasks/reorder`, data),
+
+  resetExecutions: (id: string) =>
+    apiPost<void>(`/tasks/${id}/reset-executions`, {}),
 
   getExecutions: (taskId: string, limit = 50, offset = 0) =>
     apiGet<PaginatedResponse<TaskExecution>>(`/tasks/${taskId}/executions`, { limit, offset }),
@@ -79,8 +82,8 @@ export const executionsApi = {
 }
 
 export const debugTasksApi = {
-  create: (agentId: string, data: CreateDebugTaskRequest) =>
-    apiPost<DebugTask>(`/agents/${agentId}/debug-tasks`, data),
+  create: (data: CreateDebugTaskRequest) =>
+    apiPost<DebugTask>(`/debug-tasks`, data),
 
   get: (id: string) =>
     apiGet<DebugTask>(`/debug-tasks/${id}`),

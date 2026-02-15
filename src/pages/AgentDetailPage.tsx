@@ -32,7 +32,7 @@ export default function AgentDetailPage() {
   })
 
   const createDebugTaskMutation = useMutation({
-    mutationFn: (data: CreateDebugTaskRequest) => debugTasksApi.create(agentId!, data),
+    mutationFn: (data: CreateDebugTaskRequest) => debugTasksApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents', agentId, 'debug-tasks'] })
       setCommand('')
@@ -41,8 +41,11 @@ export default function AgentDetailPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (command.trim()) {
-      createDebugTaskMutation.mutate({ command: command.trim() })
+    if (command.trim() && agentId) {
+      createDebugTaskMutation.mutate({
+        agent_id: agentId,
+        command: command.trim()
+      })
     }
   }
 

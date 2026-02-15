@@ -6,7 +6,7 @@ export function useTaskMutations(clusterId: string) {
   const queryClient = useQueryClient()
 
   const createTask = useMutation({
-    mutationFn: (data: CreateTaskRequest) => tasksApi.create(clusterId, data),
+    mutationFn: (data: CreateTaskRequest) => tasksApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', clusterId] })
     },
@@ -28,12 +28,19 @@ export function useTaskMutations(clusterId: string) {
   })
 
   const reorderTasks = useMutation({
-    mutationFn: (data: ReorderTasksRequest) =>
-      tasksApi.reorder(clusterId, data),
+    mutationFn: (data: ReorderTasksRequest) => tasksApi.reorder(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', clusterId] })
     },
   })
 
-  return { createTask, updateTask, deleteTask, reorderTasks }
+  const resetExecutions = useMutation({
+    mutationFn: (taskId: string) => tasksApi.resetExecutions(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', clusterId] })
+      queryClient.invalidateQueries({ queryKey: ['executions'] })
+    },
+  })
+
+  return { createTask, updateTask, deleteTask, reorderTasks, resetExecutions }
 }

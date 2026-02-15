@@ -72,16 +72,15 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
 
   const handleModalSubmit = (data: TaskFormData) => {
     if (modalState.mode === 'create') {
-      const nextOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order), 0) + 1 : 1
       createTask.mutate(
         {
+          cluster_id: clusterId,
           name: data.name,
           type: 'exec',
           config: {
             command: data.command,
             timeout_seconds: data.timeout_seconds,
           },
-          order: nextOrder,
           blocking: data.blocking,
         },
         {
@@ -96,7 +95,6 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
           id: modalState.task.id,
           data: {
             name: data.name,
-            type: 'exec',
             config: {
               command: data.command,
               timeout_seconds: data.timeout_seconds,
@@ -123,7 +121,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
       const reorderedTasks = arrayMove(tasks, oldIndex, newIndex)
       const taskIds = reorderedTasks.map((t) => t.id)
 
-      reorderTasks.mutate({ task_ids: taskIds })
+      reorderTasks.mutate({ cluster_id: clusterId, task_ids: taskIds })
     }
   }
 

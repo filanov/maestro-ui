@@ -18,7 +18,7 @@ export interface Agent {
 
 export interface TaskConfig {
   command: string
-  timeout_seconds: number
+  timeout_seconds?: number
   working_dir?: string
 }
 
@@ -32,6 +32,7 @@ export interface Task {
   config: TaskConfig
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 export interface TaskExecution {
@@ -41,6 +42,7 @@ export interface TaskExecution {
   status: 'pending' | 'running' | 'success' | 'failed' | 'skipped'
   output: string
   exit_code: number | null
+  error: string
   started_at: string | null
   completed_at: string | null
   created_at: string
@@ -51,11 +53,11 @@ export interface DebugTask {
   id: string
   agent_id: string
   command: string
-  status: 'pending' | 'running' | 'success' | 'failed'
+  status: 'pending' | 'running' | 'success' | 'failed' | 'skipped'
   output: string
   exit_code: number | null
+  error: string
   created_at: string
-  updated_at: string
   completed_at: string | null
 }
 
@@ -77,25 +79,26 @@ export interface UpdateClusterRequest {
 }
 
 export interface CreateTaskRequest {
+  cluster_id: string
   name: string
   type: 'exec'
   config: TaskConfig
-  order: number
   blocking?: boolean
 }
 
 export interface UpdateTaskRequest {
   name?: string
-  type?: 'exec'
-  config?: Partial<TaskConfig>
+  config?: TaskConfig
   blocking?: boolean
 }
 
 export interface ReorderTasksRequest {
+  cluster_id: string
   task_ids: string[]
 }
 
 export interface CreateDebugTaskRequest {
+  agent_id: string
   command: string
 }
 
