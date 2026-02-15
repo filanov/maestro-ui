@@ -1,5 +1,27 @@
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { tasksApi } from '../../api/maestro'
+import { useTaskMutations } from '../../hooks/useTaskMutations'
+import TaskFormModal from '../TaskFormModal'
+import type { Task } from '../../types/maestro'
+import type { TaskFormData } from '../../schemas/taskSchema'
 
 interface TasksTabProps {
   clusterId: string
@@ -12,23 +34,130 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
   })
 
   const tasks = tasksData?.data || []
+  const { createTask, updateTask, deleteTask, reorderTasks } = useTaskMutations(clusterId)
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean
+    mode: 'create' | 'edit'
+    task?: Task
+  }>({ isOpen: false, mode: 'create' })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleCreateTask = () => {
+    setModalState({ isOpen: true, mode: 'create' })
+  }
+
+  const handleEditTask = (task: Task) => {
+    setModalState({ isOpen: true, mode: 'edit', task })
+  }
+
+  const handleDeleteTask = (task: Task) => {
+    if (window.confirm(`Are you sure you want to delete '${task.name}'? This action cannot be undone.`)) {
+      deleteTask.mutate(task.id)
+    }
+  }
+
+  const handleToggleBlocking = (task: Task) => {
+    updateTask.mutate({
+      id: task.id,
+      data: { blocking: !task.blocking },
+    })
+  }
+
+  const handleModalSubmit = (data: TaskFormData) => {
+    if (modalState.mode === 'create') {
+      const nextOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order), 0) + 1 : 1
+      createTask.mutate(
+        {
+          name: data.name,
+          type: 'exec',
+          config: {
+            command: data.command,
+            timeout_seconds: data.timeout_seconds,
+          },
+          order: nextOrder,
+          blocking: data.blocking,
+        },
+        {
+          onSuccess: () => {
+            setModalState({ isOpen: false, mode: 'create' })
+          },
+        }
+      )
+    } else if (modalState.task) {
+      updateTask.mutate(
+        {
+          id: modalState.task.id,
+          data: {
+            name: data.name,
+            type: 'exec',
+            config: {
+              command: data.command,
+              timeout_seconds: data.timeout_seconds,
+            },
+            blocking: data.blocking,
+          },
+        },
+        {
+          onSuccess: () => {
+            setModalState({ isOpen: false, mode: 'create' })
+          },
+        }
+      )
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = tasks.findIndex((t) => t.id === active.id)
+      const newIndex = tasks.findIndex((t) => t.id === over.id)
+
+      const reorderedTasks = arrayMove(tasks, oldIndex, newIndex)
+      const taskIds = reorderedTasks.map((t) => t.id)
+
+      reorderTasks.mutate({ task_ids: taskIds })
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white shadow sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
-              Tasks ({tasks.length})
-            </h2>
-            <button
-              disabled
-              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Task creation coming soon"
-            >
-              Create Task
-            </button>
-          </div>
+    <>
+      <TaskFormModal
+        mode={modalState.mode}
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, mode: 'create' })}
+        onSubmit={handleModalSubmit}
+        initialData={modalState.task ? {
+          name: modalState.task.name,
+          command: modalState.task.config.command,
+          timeout_seconds: modalState.task.config.timeout_seconds,
+          blocking: modalState.task.blocking,
+        } : undefined}
+        isLoading={modalState.mode === 'create' ? createTask.isPending : updateTask.isPending}
+        error={modalState.mode === 'create' ? createTask.error : updateTask.error}
+      />
+
+      <div className="space-y-4">
+        <div className="bg-white shadow sm:rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">
+                Tasks ({tasks.length})
+              </h2>
+              <button
+                onClick={handleCreateTask}
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+              >
+                Create Task
+              </button>
+            </div>
 
           {isLoading ? (
             <div className="space-y-2">
@@ -45,50 +174,178 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
             </div>
           ) : tasks.length === 0 ? (
             <div className="text-center py-8 text-sm text-gray-500">
-              No tasks defined yet
+              No tasks defined yet. Create your first task to get started.
             </div>
           ) : (
-            <div className="space-y-2">
-              {tasks.map((task) => (
-                <div key={task.id} className="p-3 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-gray-500">#{task.order}</span>
-                        <span className="font-medium text-gray-900">{task.name}</span>
-                        {task.blocking && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-                            blocking
-                          </span>
-                        )}
-                      </div>
-                      <code className="mt-1 block text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                        {task.command}
-                      </code>
-                    </div>
-                    <div className="relative ml-4">
-                      <button
-                        disabled
-                        className="text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
-                        title="Task actions coming soon"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={tasks.map(t => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {tasks.map((task) => (
+                    <SortableTaskItem
+                      key={task.id}
+                      task={task}
+                      showDragHandle={tasks.length > 1}
+                      onEdit={handleEditTask}
+                      onDelete={handleDeleteTask}
+                      onToggleBlocking={handleToggleBlocking}
+                      isUpdating={updateTask.isPending && updateTask.variables?.id === task.id}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>
+    </div>
+    </>
+  )
+}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Coming soon:</strong> Task management features including create, edit, delete, reorder (drag-and-drop), and toggle blocking flag.
-        </p>
+interface SortableTaskItemProps {
+  task: Task
+  showDragHandle: boolean
+  onEdit: (task: Task) => void
+  onDelete: (task: Task) => void
+  onToggleBlocking: (task: Task) => void
+  isUpdating: boolean
+}
+
+function SortableTaskItem({
+  task,
+  showDragHandle,
+  onEdit,
+  onDelete,
+  onToggleBlocking,
+  isUpdating,
+}: SortableTaskItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="p-3 border rounded-lg bg-white">
+        <div className="flex items-start gap-2">
+          {showDragHandle && (
+            <button
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+              title="Drag to reorder"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                <circle cx="7" cy="5" r="1.5" />
+                <circle cx="13" cy="5" r="1.5" />
+                <circle cx="7" cy="10" r="1.5" />
+                <circle cx="13" cy="10" r="1.5" />
+                <circle cx="7" cy="15" r="1.5" />
+                <circle cx="13" cy="15" r="1.5" />
+              </svg>
+            </button>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-mono text-gray-500">#{task.order}</span>
+              <span className="font-medium text-gray-900">{task.name}</span>
+              {task.blocking && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
+                  blocking
+                </span>
+              )}
+            </div>
+            <code className="mt-1 block text-xs text-gray-600 bg-gray-50 p-2 rounded break-all">
+              {task.config.command}
+            </code>
+            <div className="mt-1 text-xs text-gray-500">
+              Timeout: {task.config.timeout_seconds}s
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={task.blocking}
+                onChange={() => onToggleBlocking(task)}
+                disabled={isUpdating}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                id={`blocking-${task.id}`}
+              />
+              <label htmlFor={`blocking-${task.id}`} className="text-xs text-gray-600">
+                Blocking task
+                {isUpdating && <span className="ml-1">(updating...)</span>}
+              </label>
+            </div>
+          </div>
+
+          <div className="relative ml-2" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onEdit(task)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onDelete(task)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

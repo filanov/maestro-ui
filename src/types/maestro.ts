@@ -16,13 +16,20 @@ export interface Agent {
   last_reset_at: string
 }
 
+export interface TaskConfig {
+  command: string
+  timeout_seconds: number
+  working_dir?: string
+}
+
 export interface Task {
   id: string
   cluster_id: string
   name: string
-  command: string
+  type: 'exec'
   order: number
   blocking: boolean
+  config: TaskConfig
   created_at: string
   updated_at: string
 }
@@ -71,14 +78,16 @@ export interface UpdateClusterRequest {
 
 export interface CreateTaskRequest {
   name: string
-  command: string
+  type: 'exec'
+  config: TaskConfig
   order: number
   blocking?: boolean
 }
 
 export interface UpdateTaskRequest {
   name?: string
-  command?: string
+  type?: 'exec'
+  config?: Partial<TaskConfig>
   blocking?: boolean
 }
 
