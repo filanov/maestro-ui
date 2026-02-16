@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { clustersApi } from '../api/maestro'
 import type { CreateClusterRequest } from '../types/maestro'
 
 export default function ClustersPage() {
   const queryClient = useQueryClient()
   const [isCreating, setIsCreating] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [formData, setFormData] = useState<CreateClusterRequest>({
     name: '',
     description: '',
@@ -162,16 +164,18 @@ export default function ClustersPage() {
                         {new Date(cluster.created_at).toLocaleDateString()}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this cluster?')) {
+                        <ClusterMenu
+                          clusterId={cluster.id}
+                          clusterName={cluster.name}
+                          isOpen={menuOpenId === cluster.id}
+                          onToggle={() => setMenuOpenId(menuOpenId === cluster.id ? null : cluster.id)}
+                          onClose={() => setMenuOpenId(null)}
+                          onDelete={() => {
+                            if (confirm(`Are you sure you want to delete '${cluster.name}'? This action cannot be undone.`)) {
                               deleteMutation.mutate(cluster.id)
                             }
                           }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
+                        />
                       </td>
                     </tr>
                   ))}
@@ -182,5 +186,85 @@ export default function ClustersPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+interface ClusterMenuProps {
+  clusterId: string
+  clusterName: string
+  isOpen: boolean
+  onToggle: () => void
+  onClose: () => void
+  onDelete: () => void
+}
+
+function ClusterMenu({ clusterId, isOpen, onToggle, onClose, onDelete }: ClusterMenuProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.right + window.scrollX - 160,
+      })
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, onClose])
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={onToggle}
+        className="text-gray-400 hover:text-gray-600"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+      </button>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed w-40 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50"
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+        >
+          <div className="py-1">
+            <Link
+              to={`/clusters/${clusterId}`}
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={onClose}
+            >
+              View Details
+            </Link>
+            <button
+              onClick={() => {
+                onClose()
+                onDelete()
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+            >
+              Delete
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
