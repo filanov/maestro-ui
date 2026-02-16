@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -183,16 +183,15 @@ export default function TemplateDetailPage() {
               >
                 <div className="space-y-3">
                   {tasks.map((task) => (
-                    <SortableTaskItem key={task.id} task={task}>
-                      <TaskCard
-                        task={task}
-                        onEdit={() => handleEdit(task)}
-                        onDelete={() => handleDelete(task)}
-                        onBlockingToggle={() => handleBlockingToggle(task)}
-                        isUpdating={updateTask.isPending}
-                        showDragHandle={tasks.length > 1}
-                      />
-                    </SortableTaskItem>
+                    <SortableTaskItem
+                      key={task.id}
+                      task={task}
+                      onEdit={() => handleEdit(task)}
+                      onDelete={() => handleDelete(task)}
+                      onBlockingToggle={() => handleBlockingToggle(task)}
+                      isUpdating={updateTask.isPending}
+                      showDragHandle={tasks.length > 1}
+                    />
                   ))}
                 </div>
               </SortableContext>
@@ -225,10 +224,21 @@ export default function TemplateDetailPage() {
 
 interface SortableTaskItemProps {
   task: TemplateTask
-  children: React.ReactNode
+  onEdit: () => void
+  onDelete: () => void
+  onBlockingToggle: () => void
+  isUpdating: boolean
+  showDragHandle: boolean
 }
 
-function SortableTaskItem({ task, children }: SortableTaskItemProps) {
+function SortableTaskItem({
+  task,
+  onEdit,
+  onDelete,
+  onBlockingToggle,
+  isUpdating,
+  showDragHandle
+}: SortableTaskItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id })
 
@@ -239,8 +249,16 @@ function SortableTaskItem({ task, children }: SortableTaskItemProps) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <div ref={setNodeRef} style={style}>
+      <TaskCard
+        task={task}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onBlockingToggle={onBlockingToggle}
+        isUpdating={isUpdating}
+        showDragHandle={showDragHandle}
+        dragHandleProps={showDragHandle ? { ...attributes, ...listeners } : undefined}
+      />
     </div>
   )
 }
@@ -252,6 +270,7 @@ interface TaskCardProps {
   onBlockingToggle: () => void
   isUpdating: boolean
   showDragHandle: boolean
+  dragHandleProps?: any
 }
 
 function TaskCard({
@@ -261,18 +280,36 @@ function TaskCard({
   onBlockingToggle,
   isUpdating,
   showDragHandle,
+  dragHandleProps,
 }: TaskCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
 
   return (
     <div className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         {showDragHandle && (
-          <div className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 pt-1">
+          <button
+            {...dragHandleProps}
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 pt-1"
+          >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
             </svg>
-          </div>
+          </button>
         )}
 
         <div className="flex-1 min-w-0">
@@ -309,7 +346,7 @@ function TaskCard({
                 Blocking
               </label>
 
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
                   className="text-gray-400 hover:text-gray-600"
@@ -319,7 +356,7 @@ function TaskCard({
                   </svg>
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                  <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
                     <div className="py-1">
                       <button
                         onClick={() => {
