@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { templatesApi } from '../api/maestro'
 import { useTemplateMutations } from '../hooks/useTemplateMutations'
+import ConfirmDialog from '../components/ConfirmDialog'
 import type { CreateTemplateRequest, Template } from '../types/maestro'
 
 export default function TemplatesPage() {
@@ -13,6 +14,11 @@ export default function TemplatesPage() {
   const [formData, setFormData] = useState<CreateTemplateRequest>({
     name: '',
     description: '',
+  })
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; template: Template | null }>({
+    open: false,
+    template: null,
   })
 
   const { data, isLoading, error } = useQuery({
@@ -54,14 +60,15 @@ export default function TemplatesPage() {
   }
 
   const handleDelete = (template: Template) => {
-    if (
-      confirm(
-        `Are you sure you want to delete '${template.name}'? This action cannot be undone.`
-      )
-    ) {
-      deleteTemplate.mutate(template.id)
-    }
+    setDeleteConfirm({ open: true, template })
     setMenuOpenId(null)
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.template) {
+      deleteTemplate.mutate(deleteConfirm.template.id)
+      setDeleteConfirm({ open: false, template: null })
+    }
   }
 
   const handleCancel = () => {
@@ -85,7 +92,17 @@ export default function TemplatesPage() {
   const showForm = isCreating || editingTemplate
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <>
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Template?"
+        message={`Are you sure you want to delete '${deleteConfirm.template?.name}'? This action cannot be undone.`}
+        confirmLabel="Delete Template"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, template: null })}
+      />
+
+      <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Templates</h1>
@@ -222,6 +239,7 @@ export default function TemplatesPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

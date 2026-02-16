@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { templatesApi, templateTasksApi } from '../api/maestro'
 import { useTemplateTaskMutations } from '../hooks/useTemplateTaskMutations'
 import TaskFormModal from '../components/TaskFormModal'
+import ConfirmDialog from '../components/ConfirmDialog'
 import type { TemplateTask, CreateTemplateTaskRequest, UpdateTemplateTaskRequest } from '../types/maestro'
 import type { TaskFormData } from '../schemas/taskSchema'
 
@@ -31,6 +32,11 @@ export default function TemplateDetailPage() {
     mode: 'create' | 'edit'
     task?: TemplateTask
   }>({ isOpen: false, mode: 'create' })
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; task: TemplateTask | null }>({
+    open: false,
+    task: null,
+  })
 
   const { data: template } = useQuery({
     queryKey: ['templates', templateId],
@@ -94,12 +100,13 @@ export default function TemplateDetailPage() {
   }
 
   const handleDelete = (task: TemplateTask) => {
-    if (
-      confirm(
-        `Are you sure you want to delete '${task.name}'? This action cannot be undone.`
-      )
-    ) {
-      deleteTask.mutate(task.id)
+    setDeleteConfirm({ open: true, task })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.task) {
+      deleteTask.mutate(deleteConfirm.task.id)
+      setDeleteConfirm({ open: false, task: null })
     }
   }
 
@@ -217,6 +224,15 @@ export default function TemplateDetailPage() {
         }
         isLoading={createTask.isPending || updateTask.isPending}
         error={createTask.error || updateTask.error}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Task?"
+        message={`Are you sure you want to delete '${deleteConfirm.task?.name}'? This action cannot be undone.`}
+        confirmLabel="Delete Task"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, task: null })}
       />
     </div>
   )

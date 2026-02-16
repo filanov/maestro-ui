@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { clustersApi } from '../api/maestro'
-import type { CreateClusterRequest } from '../types/maestro'
+import ConfirmDialog from '../components/ConfirmDialog'
+import type { CreateClusterRequest, Cluster } from '../types/maestro'
 
 export default function ClustersPage() {
   const queryClient = useQueryClient()
@@ -12,6 +13,11 @@ export default function ClustersPage() {
   const [formData, setFormData] = useState<CreateClusterRequest>({
     name: '',
     description: '',
+  })
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; cluster: Cluster | null }>({
+    open: false,
+    cluster: null,
   })
 
   const { data, isLoading, error } = useQuery({
@@ -40,6 +46,17 @@ export default function ClustersPage() {
     createMutation.mutate(formData)
   }
 
+  const handleDelete = (cluster: Cluster) => {
+    setDeleteConfirm({ open: true, cluster })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.cluster) {
+      deleteMutation.mutate(deleteConfirm.cluster.id)
+      setDeleteConfirm({ open: false, cluster: null })
+    }
+  }
+
   if (isLoading) {
     return <div className="text-center py-8">Loading clusters...</div>
   }
@@ -53,7 +70,17 @@ export default function ClustersPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <>
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Cluster?"
+        message={`Are you sure you want to delete '${deleteConfirm.cluster?.name}'? This action cannot be undone.`}
+        confirmLabel="Delete Cluster"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, cluster: null })}
+      />
+
+      <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Clusters</h1>
@@ -170,11 +197,7 @@ export default function ClustersPage() {
                           isOpen={menuOpenId === cluster.id}
                           onToggle={() => setMenuOpenId(menuOpenId === cluster.id ? null : cluster.id)}
                           onClose={() => setMenuOpenId(null)}
-                          onDelete={() => {
-                            if (confirm(`Are you sure you want to delete '${cluster.name}'? This action cannot be undone.`)) {
-                              deleteMutation.mutate(cluster.id)
-                            }
-                          }}
+                          onDelete={() => handleDelete(cluster)}
                         />
                       </td>
                     </tr>
@@ -186,6 +209,7 @@ export default function ClustersPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

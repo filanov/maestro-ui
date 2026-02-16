@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { agentsApi } from '../../api/maestro'
 import { formatDistanceToNow } from 'date-fns'
+import ConfirmDialog from '../ConfirmDialog'
 import type { Agent } from '../../types/maestro'
 
 interface AgentsTabProps {
@@ -13,6 +14,10 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [page, setPage] = useState(0)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; agent: Agent | null }>({
+    open: false,
+    agent: null,
+  })
   const limit = 50
 
   const queryClient = useQueryClient()
@@ -31,8 +36,13 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
   })
 
   const handleDelete = (agent: Agent) => {
-    if (window.confirm(`Are you sure you want to remove agent '${agent.hostname}'? This action cannot be undone.`)) {
-      deleteAgent.mutate(agent.id)
+    setDeleteConfirm({ open: true, agent })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.agent) {
+      deleteAgent.mutate(deleteConfirm.agent.id)
+      setDeleteConfirm({ open: false, agent: null })
     }
   }
 
@@ -58,7 +68,17 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
   const endIndex = Math.min((page + 1) * limit, filteredAgents.length)
 
   return (
-    <div className="space-y-4">
+    <>
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Remove Agent?"
+        message={`Are you sure you want to remove agent '${deleteConfirm.agent?.hostname}'? This action cannot be undone.`}
+        confirmLabel="Remove Agent"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, agent: null })}
+      />
+
+      <div className="space-y-4">
       <div className="bg-white shadow sm:rounded-lg p-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -240,5 +260,6 @@ function AgentCard({ agent, onDelete }: AgentCardProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }

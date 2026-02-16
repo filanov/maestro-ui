@@ -24,6 +24,7 @@ import { useTemplateMutations } from '../../hooks/useTemplateMutations'
 import TaskFormModal from '../TaskFormModal'
 import ImportTemplateModal from '../ImportTemplateModal'
 import ExportTemplateModal from '../ExportTemplateModal'
+import ConfirmDialog from '../ConfirmDialog'
 import type { Task } from '../../types/maestro'
 import type { TaskFormData } from '../../schemas/taskSchema'
 
@@ -49,6 +50,10 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; task: Task | null }>({
+    open: false,
+    task: null,
+  })
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -66,8 +71,13 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
   }
 
   const handleDeleteTask = (task: Task) => {
-    if (window.confirm(`Are you sure you want to delete '${task.name}'? This action cannot be undone.`)) {
-      deleteTask.mutate(task.id)
+    setDeleteConfirm({ open: true, task })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.task) {
+      deleteTask.mutate(deleteConfirm.task.id)
+      setDeleteConfirm({ open: false, task: null })
     }
   }
 
@@ -189,6 +199,15 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         tasks={tasks}
         isLoading={exportTemplate.isPending}
         error={exportTemplate.error}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Task?"
+        message={`Are you sure you want to delete '${deleteConfirm.task?.name}'? This action cannot be undone.`}
+        confirmLabel="Delete Task"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, task: null })}
       />
 
       <div className="space-y-4">
