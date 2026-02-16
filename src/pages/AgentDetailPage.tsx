@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
-import { agentsApi, debugTasksApi } from '../api/maestro'
+import { useState, useMemo } from 'react'
+import { agentsApi, debugTasksApi, tasksApi } from '../api/maestro'
 import { formatDistanceToNow } from 'date-fns'
 import type { CreateDebugTaskRequest } from '../types/maestro'
 
@@ -30,6 +30,20 @@ export default function AgentDetailPage() {
     enabled: !!agentId,
     refetchInterval: 5000,
   })
+
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks', agent?.cluster_id],
+    queryFn: () => tasksApi.listByCluster(agent!.cluster_id),
+    enabled: !!agent?.cluster_id,
+  })
+
+  const taskNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    tasksData?.data.forEach((task) => {
+      map.set(task.id, task.name)
+    })
+    return map
+  }, [tasksData])
 
   const createDebugTaskMutation = useMutation({
     mutationFn: (data: CreateDebugTaskRequest) => debugTasksApi.create(data),
@@ -174,7 +188,7 @@ export default function AgentDetailPage() {
                   <div key={execution.id} className="p-3 border rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-sm font-medium text-gray-900">
-                        Task ID: {execution.task_id}
+                        {taskNameMap.get(execution.task_id) || execution.task_id}
                       </div>
                       <span
                         className={`px-2 py-0.5 text-xs font-medium rounded-full ${
