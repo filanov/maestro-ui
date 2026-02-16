@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
   DndContext,
   closestCenter,
@@ -138,7 +139,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
       {
         onSuccess: (response) => {
           setIsImportModalOpen(false)
-          alert(`Successfully imported ${response.tasks_imported} tasks from template`)
+          toast.success(`Successfully imported ${response.tasks_imported} tasks from template`)
         },
       }
     )
@@ -150,7 +151,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
       {
         onSuccess: (template) => {
           setIsExportModalOpen(false)
-          alert(`Successfully exported ${data.task_ids?.length || tasks.length} tasks to template "${template.name}"`)
+          toast.success(`Successfully exported ${data.task_ids?.length || tasks.length} tasks to template "${template.name}"`)
         },
       }
     )
