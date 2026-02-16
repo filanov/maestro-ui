@@ -14,6 +14,16 @@ import type {
   CreateDebugTaskRequest,
   ExecutionFilters,
   HealthResponse,
+  Template,
+  TemplateTask,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
+  CreateTemplateTaskRequest,
+  UpdateTemplateTaskRequest,
+  ReorderTemplateTasksRequest,
+  ImportTemplateRequest,
+  ImportTemplateResponse,
+  ExportTemplateRequest,
 } from '../types/maestro'
 
 export const clustersApi = {
@@ -31,6 +41,12 @@ export const clustersApi = {
 
   delete: (id: string) =>
     apiDelete<void>(`/clusters/${id}`),
+
+  importTemplate: (clusterId: string, data: ImportTemplateRequest) =>
+    apiPost<ImportTemplateResponse>(`/clusters/${clusterId}/import-template`, data),
+
+  exportTemplate: (clusterId: string, data: ExportTemplateRequest) =>
+    apiPost<Template>(`/clusters/${clusterId}/export-template`, data),
 }
 
 export const agentsApi = {
@@ -95,4 +111,38 @@ export const debugTasksApi = {
 export const healthApi = {
   check: () =>
     apiGet<HealthResponse>('/health'),
+}
+
+export const templatesApi = {
+  list: (limit = 50, offset = 0) =>
+    apiGet<PaginatedResponse<Template>>('/templates', { limit, offset }),
+
+  create: (data: CreateTemplateRequest) =>
+    apiPost<Template>('/templates', data),
+
+  get: (id: string) =>
+    apiGet<Template>(`/templates/${id}`),
+
+  update: (id: string, data: UpdateTemplateRequest) =>
+    apiPut<Template>(`/templates/${id}`, data),
+
+  delete: (id: string) =>
+    apiDelete<void>(`/templates/${id}`),
+}
+
+export const templateTasksApi = {
+  listByTemplate: (templateId: string, limit = 50, offset = 0) =>
+    apiGet<PaginatedResponse<TemplateTask>>(`/templates/${templateId}/tasks`, { limit, offset }),
+
+  create: (templateId: string, data: CreateTemplateTaskRequest) =>
+    apiPost<TemplateTask>(`/templates/${templateId}/tasks`, data),
+
+  update: (id: string, data: UpdateTemplateTaskRequest) =>
+    apiPut<TemplateTask>(`/template-tasks/${id}`, data),
+
+  delete: (id: string) =>
+    apiDelete<void>(`/template-tasks/${id}`),
+
+  reorder: (templateId: string, data: ReorderTemplateTasksRequest) =>
+    apiPost<void>(`/templates/${templateId}/tasks/reorder`, data),
 }

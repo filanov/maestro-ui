@@ -115,3 +115,66 @@ export interface HealthResponse {
   status: 'healthy' | 'unhealthy'
   timestamp: string
 }
+
+export interface Template {
+  id: string
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TemplateTask {
+  id: string
+  template_id: string
+  name: string
+  type: 'exec'
+  order: number
+  blocking: boolean
+  config: TaskConfig
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTemplateRequest {
+  name: string
+  description?: string
+}
+
+export interface UpdateTemplateRequest {
+  name?: string
+  description?: string
+}
+
+export interface CreateTemplateTaskRequest {
+  name: string
+  type: 'exec'
+  config: TaskConfig
+  blocking?: boolean
+}
+
+export interface UpdateTemplateTaskRequest {
+  name?: string
+  config?: TaskConfig
+  blocking?: boolean
+}
+
+export interface ReorderTemplateTasksRequest {
+  template_id: string
+  task_ids: string[]
+}
+
+export interface ImportTemplateRequest {
+  template_id: string
+}
+
+export interface ImportTemplateResponse {
+  message: string
+  tasks_imported: number
+}
+
+export interface ExportTemplateRequest {
+  template_name: string
+  template_description?: string
+  task_ids?: string[]
+}

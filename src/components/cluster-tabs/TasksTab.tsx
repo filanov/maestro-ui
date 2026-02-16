@@ -19,7 +19,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { tasksApi } from '../../api/maestro'
 import { useTaskMutations } from '../../hooks/useTaskMutations'
+import { useTemplateMutations } from '../../hooks/useTemplateMutations'
 import TaskFormModal from '../TaskFormModal'
+import ImportTemplateModal from '../ImportTemplateModal'
+import ExportTemplateModal from '../ExportTemplateModal'
 import type { Task } from '../../types/maestro'
 import type { TaskFormData } from '../../schemas/taskSchema'
 
@@ -35,12 +38,16 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
 
   const tasks = tasksData?.data || []
   const { createTask, updateTask, deleteTask, reorderTasks } = useTaskMutations(clusterId)
+  const { importTemplate, exportTemplate } = useTemplateMutations()
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean
     mode: 'create' | 'edit'
     task?: Task
   }>({ isOpen: false, mode: 'create' })
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -125,6 +132,30 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
     }
   }
 
+  const handleImport = (templateId: string) => {
+    importTemplate.mutate(
+      { clusterId, data: { template_id: templateId } },
+      {
+        onSuccess: (response) => {
+          setIsImportModalOpen(false)
+          alert(`Successfully imported ${response.tasks_imported} tasks from template`)
+        },
+      }
+    )
+  }
+
+  const handleExport = (data: { template_name: string; template_description?: string; task_ids?: string[] }) => {
+    exportTemplate.mutate(
+      { clusterId, data },
+      {
+        onSuccess: (template) => {
+          setIsExportModalOpen(false)
+          alert(`Successfully exported ${data.task_ids?.length || tasks.length} tasks to template "${template.name}"`)
+        },
+      }
+    )
+  }
+
   return (
     <>
       <TaskFormModal
@@ -142,6 +173,23 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         error={modalState.mode === 'create' ? createTask.error : updateTask.error}
       />
 
+      <ImportTemplateModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImport}
+        isLoading={importTemplate.isPending}
+        error={importTemplate.error}
+      />
+
+      <ExportTemplateModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        tasks={tasks}
+        isLoading={exportTemplate.isPending}
+        error={exportTemplate.error}
+      />
+
       <div className="space-y-4">
         <div className="bg-white shadow sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -149,12 +197,27 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
               <h2 className="text-lg font-medium text-gray-900">
                 Tasks ({tasks.length})
               </h2>
-              <button
-                onClick={handleCreateTask}
-                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-              >
-                Create Task
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                >
+                  Import from Template
+                </button>
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  disabled={tasks.length === 0}
+                  className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Export as Template
+                </button>
+                <button
+                  onClick={handleCreateTask}
+                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                >
+                  Create Task
+                </button>
+              </div>
             </div>
 
           {isLoading ? (
