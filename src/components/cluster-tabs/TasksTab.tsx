@@ -55,6 +55,10 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
     task: null,
   })
 
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -86,6 +90,46 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
       id: task.id,
       data: { blocking: !task.blocking },
     })
+  }
+
+  const handleEnterSelectionMode = () => {
+    setSelectionMode(true)
+    setSelectedTaskIds(new Set())
+  }
+
+  const handleExitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedTaskIds(new Set())
+  }
+
+  const handleToggleTaskSelection = (taskId: string) => {
+    const newSelected = new Set(selectedTaskIds)
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId)
+    } else {
+      newSelected.add(taskId)
+    }
+    setSelectedTaskIds(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    setSelectedTaskIds(new Set(tasks.map(t => t.id)))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedTaskIds(new Set())
+  }
+
+  const handleBulkDelete = () => {
+    setBulkDeleteConfirm(true)
+  }
+
+  const confirmBulkDelete = () => {
+    selectedTaskIds.forEach(taskId => {
+      deleteTask.mutate(taskId)
+    })
+    setBulkDeleteConfirm(false)
+    handleExitSelectionMode()
   }
 
   const handleModalSubmit = (data: TaskFormData) => {
@@ -212,6 +256,15 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         onCancel={() => setDeleteConfirm({ open: false, task: null })}
       />
 
+      <ConfirmDialog
+        open={bulkDeleteConfirm}
+        title="Delete Multiple Tasks?"
+        message={`Are you sure you want to delete ${selectedTaskIds.size} task${selectedTaskIds.size === 1 ? '' : 's'}? This action cannot be undone.`}
+        confirmLabel="Delete Tasks"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setBulkDeleteConfirm(false)}
+      />
+
       <div className="space-y-4">
         <div className="bg-white shadow sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -220,25 +273,43 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
                 Tasks ({tasks.length})
               </h2>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                >
-                  Import from Template
-                </button>
-                <button
-                  onClick={() => setIsExportModalOpen(true)}
-                  disabled={tasks.length === 0}
-                  className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Export as Template
-                </button>
-                <button
-                  onClick={handleCreateTask}
-                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-                >
-                  Create Task
-                </button>
+                {selectionMode ? (
+                  <button
+                    onClick={handleExitSelectionMode}
+                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    >
+                      Import from Template
+                    </button>
+                    <button
+                      onClick={() => setIsExportModalOpen(true)}
+                      disabled={tasks.length === 0}
+                      className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Export as Template
+                    </button>
+                    <button
+                      onClick={handleCreateTask}
+                      className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                    >
+                      Create Task
+                    </button>
+                    <button
+                      onClick={handleEnterSelectionMode}
+                      disabled={tasks.length === 0}
+                      className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Select Tasks
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -274,11 +345,14 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
                     <SortableTaskItem
                       key={task.id}
                       task={task}
-                      showDragHandle={tasks.length > 1}
+                      showDragHandle={tasks.length > 1 && !selectionMode}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
                       onToggleBlocking={handleToggleBlocking}
                       isUpdating={updateTask.isPending && updateTask.variables?.id === task.id}
+                      selectionMode={selectionMode}
+                      isSelected={selectedTaskIds.has(task.id)}
+                      onToggleSelection={handleToggleTaskSelection}
                     />
                   ))}
                 </div>
@@ -288,6 +362,42 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         </div>
       </div>
     </div>
+
+      {selectionMode && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
+          <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-900">
+                  {selectedTaskIds.size} task{selectedTaskIds.size === 1 ? '' : 's'} selected
+                </span>
+                {selectedTaskIds.size === tasks.length ? (
+                  <button
+                    onClick={handleDeselectAll}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Deselect All
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Select All
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedTaskIds.size === 0}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -299,6 +409,9 @@ interface SortableTaskItemProps {
   onDelete: (task: Task) => void
   onToggleBlocking: (task: Task) => void
   isUpdating: boolean
+  selectionMode: boolean
+  isSelected: boolean
+  onToggleSelection: (taskId: string) => void
 }
 
 function SortableTaskItem({
@@ -308,6 +421,9 @@ function SortableTaskItem({
   onDelete,
   onToggleBlocking,
   isUpdating,
+  selectionMode,
+  isSelected,
+  onToggleSelection,
 }: SortableTaskItemProps) {
   const {
     attributes,
@@ -342,9 +458,18 @@ function SortableTaskItem({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="p-3 border rounded-lg bg-white">
+      <div className={`p-3 border rounded-lg ${selectionMode && isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white'}`}>
         <div className="flex items-start gap-2">
-          {showDragHandle && (
+          {selectionMode && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelection(task.id)}
+              className="h-4 w-4 mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          )}
+
+          {showDragHandle && !selectionMode && (
             <button
               {...attributes}
               {...listeners}
@@ -383,32 +508,35 @@ function SortableTaskItem({
             <div className="mt-1 text-xs text-gray-500">
               Timeout: {task.config.timeout_seconds}s
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={task.blocking}
-                onChange={() => onToggleBlocking(task)}
-                disabled={isUpdating}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                id={`blocking-${task.id}`}
-              />
-              <label htmlFor={`blocking-${task.id}`} className="text-xs text-gray-600">
-                Blocking task
-                {isUpdating && <span className="ml-1">(updating...)</span>}
-              </label>
-            </div>
+            {!selectionMode && (
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={task.blocking}
+                  onChange={() => onToggleBlocking(task)}
+                  disabled={isUpdating}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  id={`blocking-${task.id}`}
+                />
+                <label htmlFor={`blocking-${task.id}`} className="text-xs text-gray-600">
+                  Blocking task
+                  {isUpdating && <span className="ml-1">(updating...)</span>}
+                </label>
+              </div>
+            )}
           </div>
 
-          <div className="relative ml-2" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
-            </button>
-            {menuOpen && (
+          {!selectionMode && (
+            <div className="relative ml-2" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+              {menuOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
                 <div className="py-1">
                   <button
@@ -431,8 +559,9 @@ function SortableTaskItem({
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
