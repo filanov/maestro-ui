@@ -3,7 +3,6 @@ import { templateTasksApi } from '../api/maestro'
 import type {
   CreateTemplateTaskRequest,
   UpdateTemplateTaskRequest,
-  ReorderTemplateTasksRequest,
 } from '../types/maestro'
 
 export function useTemplateTaskMutations(templateId: string) {

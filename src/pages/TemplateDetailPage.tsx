@@ -286,7 +286,7 @@ interface TaskCardProps {
   onBlockingToggle: () => void
   isUpdating: boolean
   showDragHandle: boolean
-  dragHandleProps?: any
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>
 }
 
 function TaskCard({

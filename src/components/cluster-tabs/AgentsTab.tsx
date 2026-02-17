@@ -179,6 +179,7 @@ export default function AgentsTab({ clusterId }: AgentsTabProps) {
         </div>
       )}
     </div>
+    </>
   )
 }
 
@@ -260,6 +261,5 @@ function AgentCard({ agent, onDelete }: AgentCardProps) {
         </div>
       </div>
     </div>
-    </>
   )
 }

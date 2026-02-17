@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { templatesApi } from '../api/maestro'
-import type { Template } from '../types/maestro'
 
 interface ImportTemplateModalProps {
   isOpen: boolean
