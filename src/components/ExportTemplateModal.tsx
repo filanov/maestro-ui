@@ -4,7 +4,7 @@ import type { Task } from '../types/maestro'
 interface ExportTemplateModalProps {
   isOpen: boolean
   onClose: () => void
-  onExport: (data: { name: string; description?: string; taskIds?: string[] }) => void
+  onExport: (data: { template_name: string; template_description?: string; task_ids?: string[] }) => void
   tasks: Task[]
   isLoading?: boolean
   error?: Error | null

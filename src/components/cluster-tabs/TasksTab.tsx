@@ -94,7 +94,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         {
           cluster_id: clusterId,
           name: data.name,
-          type: 'exec',
+          type: data.type,
           config: {
             command: data.command,
             timeout_seconds: data.timeout_seconds,
@@ -113,6 +113,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
           id: modalState.task.id,
           data: {
             name: data.name,
+            type: data.type,
             config: {
               command: data.command,
               timeout_seconds: data.timeout_seconds,
@@ -176,6 +177,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
         onSubmit={handleModalSubmit}
         initialData={modalState.task ? {
           name: modalState.task.name,
+          type: modalState.task.type,
           command: modalState.task.config.command,
           timeout_seconds: modalState.task.config.timeout_seconds,
           blocking: modalState.task.blocking,
@@ -364,6 +366,11 @@ function SortableTaskItem({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono text-gray-500">#{task.order}</span>
               <span className="font-medium text-gray-900">{task.name}</span>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                task.type === 'bash' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {task.type}
+              </span>
               {task.blocking && (
                 <span className="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
                   blocking

@@ -26,7 +26,7 @@ export interface Task {
   id: string
   cluster_id: string
   name: string
-  type: 'exec'
+  type: 'exec' | 'bash'
   order: number
   blocking: boolean
   config: TaskConfig
@@ -81,13 +81,14 @@ export interface UpdateClusterRequest {
 export interface CreateTaskRequest {
   cluster_id: string
   name: string
-  type: 'exec'
+  type: 'exec' | 'bash'
   config: TaskConfig
   blocking?: boolean
 }
 
 export interface UpdateTaskRequest {
   name?: string
+  type?: 'exec' | 'bash'
   config?: TaskConfig
   blocking?: boolean
 }
@@ -128,7 +129,7 @@ export interface TemplateTask {
   id: string
   template_id: string
   name: string
-  type: 'exec'
+  type: 'exec' | 'bash'
   order: number
   blocking: boolean
   config: TaskConfig
@@ -148,13 +149,14 @@ export interface UpdateTemplateRequest {
 
 export interface CreateTemplateTaskRequest {
   name: string
-  type: 'exec'
+  type: 'exec' | 'bash'
   config: TaskConfig
   blocking?: boolean
 }
 
 export interface UpdateTemplateTaskRequest {
   name?: string
+  type?: 'exec' | 'bash'
   config?: TaskConfig
   blocking?: boolean
 }

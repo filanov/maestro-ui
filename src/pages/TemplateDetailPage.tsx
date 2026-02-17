@@ -67,7 +67,7 @@ export default function TemplateDetailPage() {
     if (modalState.mode === 'create') {
       const request: CreateTemplateTaskRequest = {
         name: data.name,
-        type: 'exec',
+        type: data.type,
         config: {
           command: data.command,
           timeout_seconds: data.timeout_seconds,
@@ -80,6 +80,7 @@ export default function TemplateDetailPage() {
     } else if (modalState.task) {
       const request: UpdateTemplateTaskRequest = {
         name: data.name,
+        type: data.type,
         config: {
           command: data.command,
           timeout_seconds: data.timeout_seconds,
@@ -216,6 +217,7 @@ export default function TemplateDetailPage() {
           modalState.task
             ? {
                 name: modalState.task.name,
+                type: modalState.task.type,
                 command: modalState.task.config.command,
                 timeout_seconds: modalState.task.config.timeout_seconds || 300,
                 blocking: modalState.task.blocking,
@@ -334,6 +336,11 @@ function TaskCard({
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium text-gray-500">#{task.order}</span>
                 <h3 className="text-sm font-medium text-gray-900">{task.name}</h3>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                  task.type === 'bash' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {task.type}
+                </span>
                 {task.blocking && (
                   <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
                     Blocking

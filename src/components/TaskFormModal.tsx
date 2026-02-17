@@ -23,6 +23,7 @@ export default function TaskFormModal({
 }: TaskFormModalProps) {
   const [formData, setFormData] = useState<TaskFormData>({
     name: initialData?.name || '',
+    type: initialData?.type || 'bash',
     command: initialData?.command || '',
     timeout_seconds: initialData?.timeout_seconds || 300,
     blocking: initialData?.blocking || false,
@@ -33,6 +34,7 @@ export default function TaskFormModal({
     if (isOpen && initialData) {
       setFormData({
         name: initialData.name || '',
+        type: initialData.type || 'bash',
         command: initialData.command || '',
         timeout_seconds: initialData.timeout_seconds || 300,
         blocking: initialData.blocking || false,
@@ -125,6 +127,46 @@ export default function TaskFormModal({
               />
               {validationErrors.name && (
                 <p className="mt-1 text-sm text-red-600">{validationErrors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Task Type
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    value="bash"
+                    checked={formData.type === 'bash'}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as 'exec' | 'bash' })}
+                    disabled={isLoading}
+                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Bash <span className="text-xs text-gray-500">(shell script)</span>
+                  </span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    value="exec"
+                    checked={formData.type === 'exec'}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as 'exec' | 'bash' })}
+                    disabled={isLoading}
+                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Exec <span className="text-xs text-gray-500">(direct execution)</span>
+                  </span>
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Bash executes commands in a shell environment with access to shell features. Exec runs commands directly.
+              </p>
+              {validationErrors.type && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.type}</p>
               )}
             </div>
 

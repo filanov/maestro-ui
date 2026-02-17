@@ -5,6 +5,7 @@ export const taskFormSchema = z.object({
     .min(1, 'Name is required')
     .max(100, 'Name must be 100 characters or less')
     .transform(val => val.trim()),
+  type: z.enum(['exec', 'bash']).default('bash'),
   command: z.string()
     .min(1, 'Command is required')
     .max(1000, 'Command must be 1000 characters or less')
