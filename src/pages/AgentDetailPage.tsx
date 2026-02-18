@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { agentsApi, debugTasksApi, tasksApi } from '../api/maestro'
 import { formatDistanceToNow } from 'date-fns'
 import type { CreateDebugTaskRequest } from '../types/maestro'
@@ -44,6 +45,15 @@ export default function AgentDetailPage() {
     })
     return map
   }, [tasksData])
+
+  const resetExecutionForAgentMutation = useMutation({
+    mutationFn: ({ taskId }: { taskId: string }) =>
+      tasksApi.resetExecutionForAgent(taskId, agentId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents', agentId, 'executions'] })
+      toast.success('Execution reset')
+    },
+  })
 
   const createDebugTaskMutation = useMutation({
     mutationFn: (data: CreateDebugTaskRequest) => debugTasksApi.create(data),
@@ -190,21 +200,31 @@ export default function AgentDetailPage() {
                       <div className="text-sm font-medium text-gray-900">
                         {taskNameMap.get(execution.task_id) || execution.task_id}
                       </div>
-                      <span
-                        className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          execution.status === 'success'
-                            ? 'bg-green-100 text-green-800'
-                            : execution.status === 'failed'
-                            ? 'bg-red-100 text-red-800'
-                            : execution.status === 'running'
-                            ? 'bg-blue-100 text-blue-800'
-                            : execution.status === 'skipped'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {execution.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {['success', 'failed', 'skipped'].includes(execution.status) && (
+                          <button
+                            onClick={() => resetExecutionForAgentMutation.mutate({ taskId: execution.task_id })}
+                            className="text-xs text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-2 py-0.5"
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span
+                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                            execution.status === 'success'
+                              ? 'bg-green-100 text-green-800'
+                              : execution.status === 'failed'
+                              ? 'bg-red-100 text-red-800'
+                              : execution.status === 'running'
+                              ? 'bg-blue-100 text-blue-800'
+                              : execution.status === 'skipped'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {execution.status}
+                        </span>
+                      </div>
                     </div>
                     {execution.output && (
                       <pre className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded overflow-x-auto max-h-32">

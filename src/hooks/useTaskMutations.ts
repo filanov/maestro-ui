@@ -42,5 +42,13 @@ export function useTaskMutations(clusterId: string) {
     },
   })
 
-  return { createTask, updateTask, deleteTask, reorderTasks, resetExecutions }
+  const resetExecutionForAgent = useMutation({
+    mutationFn: ({ taskId, agentId }: { taskId: string; agentId: string }) =>
+      tasksApi.resetExecutionForAgent(taskId, agentId),
+    onSuccess: (_data, { agentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['agents', agentId, 'executions'] })
+    },
+  })
+
+  return { createTask, updateTask, deleteTask, reorderTasks, resetExecutions, resetExecutionForAgent }
 }

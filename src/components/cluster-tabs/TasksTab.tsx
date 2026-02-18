@@ -39,7 +39,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
   })
 
   const tasks = tasksData?.data || []
-  const { createTask, updateTask, deleteTask, reorderTasks } = useTaskMutations(clusterId)
+  const { createTask, updateTask, deleteTask, reorderTasks, resetExecutions } = useTaskMutations(clusterId)
   const { importTemplate, exportTemplate } = useTemplateMutations()
 
   const [modalState, setModalState] = useState<{
@@ -76,6 +76,12 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
 
   const handleDeleteTask = (task: Task) => {
     setDeleteConfirm({ open: true, task })
+  }
+
+  const handleResetExecutions = (task: Task) => {
+    resetExecutions.mutate(task.id, {
+      onSuccess: () => toast.success(`Executions reset for "${task.name}"`),
+    })
   }
 
   const confirmDelete = () => {
@@ -357,6 +363,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
                       showDragHandle={tasks.length > 1 && !selectionMode}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
+                      onReset={handleResetExecutions}
                       onToggleBlocking={handleToggleBlocking}
                       isUpdating={updateTask.isPending && updateTask.variables?.id === task.id}
                       selectionMode={selectionMode}
@@ -416,6 +423,7 @@ interface SortableTaskItemProps {
   showDragHandle: boolean
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
+  onReset: (task: Task) => void
   onToggleBlocking: (task: Task) => void
   isUpdating: boolean
   selectionMode: boolean
@@ -428,6 +436,7 @@ function SortableTaskItem({
   showDragHandle,
   onEdit,
   onDelete,
+  onReset,
   onToggleBlocking,
   isUpdating,
   selectionMode,
@@ -561,6 +570,15 @@ function SortableTaskItem({
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onReset(task)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Reset Executions
                   </button>
                   <button
                     onClick={() => {

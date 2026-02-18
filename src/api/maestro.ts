@@ -85,6 +85,9 @@ export const tasksApi = {
   resetExecutions: (id: string) =>
     apiPost<void>(`/tasks/${id}/reset-executions`, {}),
 
+  resetExecutionForAgent: (taskId: string, agentId: string) =>
+    apiPost<void>(`/tasks/${taskId}/reset-executions/agents/${agentId}`, {}),
+
   getExecutions: (taskId: string, limit = 50, offset = 0) =>
     apiGet<PaginatedResponse<TaskExecution>>(`/tasks/${taskId}/executions`, { limit, offset }),
 }
