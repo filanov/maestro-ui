@@ -144,10 +144,13 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
             timeout_seconds: data.timeout_seconds,
           },
           blocking: data.blocking,
+          schedule_enabled: data.schedule_enabled,
+          schedule_interval: data.schedule_enabled ? (data.schedule_interval || null) : null,
         },
         {
           onSuccess: () => {
             setModalState({ isOpen: false, mode: 'create' })
+            toast.success(`Task "${data.name}" created`)
           },
         }
       )
@@ -163,11 +166,14 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
               timeout_seconds: data.timeout_seconds,
             },
             blocking: data.blocking,
+            schedule_enabled: data.schedule_enabled,
+            schedule_interval: data.schedule_enabled ? (data.schedule_interval || null) : null,
           },
         },
         {
           onSuccess: () => {
             setModalState({ isOpen: false, mode: 'create' })
+            toast.success(`Task "${data.name}" updated`)
           },
         }
       )
@@ -215,6 +221,7 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
   return (
     <>
       <TaskFormModal
+        key={modalState.isOpen ? `${modalState.mode}-${modalState.task?.id ?? 'new'}` : 'closed'}
         mode={modalState.mode}
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ isOpen: false, mode: 'create' })}
@@ -225,6 +232,8 @@ export default function TasksTab({ clusterId }: TasksTabProps) {
           command: modalState.task.config.command,
           timeout_seconds: modalState.task.config.timeout_seconds,
           blocking: modalState.task.blocking,
+          schedule_enabled: modalState.task.schedule_enabled,
+          schedule_interval: modalState.task.schedule_interval || '',
         } : undefined}
         isLoading={modalState.mode === 'create' ? createTask.isPending : updateTask.isPending}
         error={modalState.mode === 'create' ? createTask.error : updateTask.error}
@@ -499,6 +508,11 @@ function SortableTaskItem({
               {task.blocking && (
                 <span className="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
                   blocking
+                </span>
+              )}
+              {task.schedule_enabled && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
+                  every {task.schedule_interval}
                 </span>
               )}
             </div>

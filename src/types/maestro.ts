@@ -30,6 +30,8 @@ export interface Task {
   order: number
   blocking: boolean
   config: TaskConfig
+  schedule_enabled: boolean
+  schedule_interval: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -84,6 +86,8 @@ export interface CreateTaskRequest {
   type: 'exec' | 'bash'
   config: TaskConfig
   blocking?: boolean
+  schedule_enabled?: boolean
+  schedule_interval?: string | null
 }
 
 export interface UpdateTaskRequest {
@@ -91,6 +95,8 @@ export interface UpdateTaskRequest {
   type?: 'exec' | 'bash'
   config?: TaskConfig
   blocking?: boolean
+  schedule_enabled?: boolean
+  schedule_interval?: string | null
 }
 
 export interface ReorderTasksRequest {
@@ -133,6 +139,8 @@ export interface TemplateTask {
   order: number
   blocking: boolean
   config: TaskConfig
+  schedule_enabled: boolean
+  schedule_interval: string | null
   created_at: string
   updated_at: string
 }
@@ -152,6 +160,8 @@ export interface CreateTemplateTaskRequest {
   type: 'exec' | 'bash'
   config: TaskConfig
   blocking?: boolean
+  schedule_enabled?: boolean
+  schedule_interval?: string | null
 }
 
 export interface UpdateTemplateTaskRequest {
@@ -159,6 +169,8 @@ export interface UpdateTemplateTaskRequest {
   type?: 'exec' | 'bash'
   config?: TaskConfig
   blocking?: boolean
+  schedule_enabled?: boolean
+  schedule_interval?: string | null
 }
 
 export interface ReorderTemplateTasksRequest {

@@ -25,23 +25,12 @@ export default function TaskFormModal({
     name: initialData?.name || '',
     type: initialData?.type || 'bash',
     command: initialData?.command || '',
-    timeout_seconds: initialData?.timeout_seconds || 300,
+    timeout_seconds: initialData?.timeout_seconds ?? 300,
     blocking: initialData?.blocking || false,
+    schedule_enabled: initialData?.schedule_enabled || false,
+    schedule_interval: initialData?.schedule_interval || '',
   })
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (isOpen && initialData) {
-      setFormData({
-        name: initialData.name || '',
-        type: initialData.type || 'bash',
-        command: initialData.command || '',
-        timeout_seconds: initialData.timeout_seconds || 300,
-        blocking: initialData.blocking || false,
-      })
-      setValidationErrors({})
-    }
-  }, [isOpen, initialData])
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -87,7 +76,7 @@ export default function TaskFormModal({
       className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900">
@@ -123,6 +112,7 @@ export default function TaskFormModal({
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 disabled={isLoading}
+                autoFocus
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border disabled:opacity-50"
               />
               {validationErrors.name && (
@@ -196,7 +186,7 @@ export default function TaskFormModal({
                 id="timeout_seconds"
                 min="1"
                 value={formData.timeout_seconds}
-                onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) || 300 })}
+                onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) || 0 })}
                 disabled={isLoading}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border disabled:opacity-50"
               />
@@ -217,6 +207,45 @@ export default function TaskFormModal({
               <label htmlFor="blocking" className="ml-2 block text-sm text-gray-700">
                 Blocking (failure skips subsequent tasks)
               </label>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="schedule_enabled"
+                  checked={formData.schedule_enabled}
+                  onChange={(e) => setFormData({ ...formData, schedule_enabled: e.target.checked })}
+                  disabled={isLoading}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <label htmlFor="schedule_enabled" className="ml-2 block text-sm text-gray-700">
+                  Enable periodic scheduling
+                </label>
+              </div>
+
+              {formData.schedule_enabled && (
+                <div className="mt-3">
+                  <label htmlFor="schedule_interval" className="block text-sm font-medium text-gray-700">
+                    Interval
+                  </label>
+                  <input
+                    type="text"
+                    id="schedule_interval"
+                    value={formData.schedule_interval || ''}
+                    onChange={(e) => setFormData({ ...formData, schedule_interval: e.target.value })}
+                    disabled={isLoading}
+                    placeholder="e.g. 5m, 1h, 30s"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border disabled:opacity-50"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Go duration format: s (seconds), m (minutes), h (hours). Example: 5m, 1h30m, 30s
+                  </p>
+                  {validationErrors.schedule_interval && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.schedule_interval}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

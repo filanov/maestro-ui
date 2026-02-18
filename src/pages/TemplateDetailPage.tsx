@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import {
   DndContext,
   closestCenter,
@@ -73,9 +74,14 @@ export default function TemplateDetailPage() {
           timeout_seconds: data.timeout_seconds,
         },
         blocking: data.blocking,
+        schedule_enabled: data.schedule_enabled,
+        schedule_interval: data.schedule_enabled ? (data.schedule_interval || null) : null,
       }
       createTask.mutate(request, {
-        onSuccess: () => setModalState({ isOpen: false, mode: 'create' }),
+        onSuccess: () => {
+          setModalState({ isOpen: false, mode: 'create' })
+          toast.success(`Task "${data.name}" created`)
+        },
       })
     } else if (modalState.task) {
       const request: UpdateTemplateTaskRequest = {
@@ -86,11 +92,16 @@ export default function TemplateDetailPage() {
           timeout_seconds: data.timeout_seconds,
         },
         blocking: data.blocking,
+        schedule_enabled: data.schedule_enabled,
+        schedule_interval: data.schedule_enabled ? (data.schedule_interval || null) : null,
       }
       updateTask.mutate(
         { id: modalState.task.id, data: request },
         {
-          onSuccess: () => setModalState({ isOpen: false, mode: 'create' }),
+          onSuccess: () => {
+            setModalState({ isOpen: false, mode: 'create' })
+            toast.success(`Task "${data.name}" updated`)
+          },
         }
       )
     }
@@ -209,6 +220,7 @@ export default function TemplateDetailPage() {
       </div>
 
       <TaskFormModal
+        key={modalState.isOpen ? `${modalState.mode}-${modalState.task?.id ?? 'new'}` : 'closed'}
         mode={modalState.mode}
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ isOpen: false, mode: 'create' })}
@@ -221,6 +233,8 @@ export default function TemplateDetailPage() {
                 command: modalState.task.config.command,
                 timeout_seconds: modalState.task.config.timeout_seconds || 300,
                 blocking: modalState.task.blocking,
+                schedule_enabled: modalState.task.schedule_enabled,
+                schedule_interval: modalState.task.schedule_interval || '',
               }
             : undefined
         }
@@ -344,6 +358,11 @@ function TaskCard({
                 {task.blocking && (
                   <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
                     Blocking
+                  </span>
+                )}
+                {task.schedule_enabled && (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                    every {task.schedule_interval}
                   </span>
                 )}
               </div>
